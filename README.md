@@ -4,9 +4,9 @@
 </p>
 
 <p align="center">
-	<a href="https://github.com/Akebi-Group/Akebi-GC/releases/latest"><img src="https://img.shields.io/github/v/release/Akebi-Group/Akebi-GC?style=for-the-badge"></a>
-	<a href="https://github.com/Akebi-Group/Akebi-GC/releases"><img src="https://img.shields.io/github/downloads/Akebi-Group/Akebi-GC/total.svg?style=for-the-badge"></a>
-	<a href="https://github.com/Akebi-Group/Akebi-GC/graphs/contributors"><img src="https://img.shields.io/github/contributors/Akebi-Group/Akebi-GC?style=for-the-badge&color=red"></a>
+	<a href="https://github.com/tiy331/Akebi-GC/releases/latest"><img src="https://img.shields.io/github/v/release/tiy331/Akebi-GC?style=for-the-badge"></a>
+	<a href="https://github.com/tiy331/Akebi-GC/releases"><img src="https://img.shields.io/github/downloads/tiy331/Akebi-GC/total.svg?style=for-the-badge"></a>
+	<a href="https://github.com/tiy331/Akebi-GC/graphs/contributors"><img src="https://img.shields.io/github/contributors/tiy331/Akebi-GC?style=for-the-badge&color=red"></a>
 	<a href="https://discord.gg/MmV8hNZB9S"><img src="https://img.shields.io/discord/440536354544156683?label=Discord&logo=discord&style=for-the-badge&color=blueviolet"></a>
 </p>
 
@@ -17,11 +17,11 @@
 <h1 align="center">Getting Started</h1>
 
 ## Stable Release
-1. Head over to the [releases page](https://github.com/Akebi-Group/Akebi-GC/releases)
+1. Head over to the [releases page](https://github.com/tiy331/Akebi-GC/releases)
 2. Download the latest binaries
 
 ## Latest Release
-1. Head over to the [Action](https://github.com/Akebi-Group/Akebi-GC/actions) page
+1. Head over to the [Action](https://github.com/tiy331/Akebi-GC/actions) page
 1. Click Publish workflow
 1. Select most recent workflow with green checkmark ✔ (Choose your client version **GLOBAL/CN/BETA**)
 	<p align="center">
@@ -33,7 +33,7 @@
 	</p>
 
 ## Building from source
-Check our wiki - [Building](https://github.com/Akebi-Group/Akebi-GC/wiki/Building%EF%BD%9C%E5%BB%BA%E7%BD%AE)
+Check our wiki - [Building](https://github.com/tiy331/Akebi-GC/wiki/Building%EF%BD%9C%E5%BB%BA%E7%BD%AE)
 
 ### Usage
 1. Ensure that `CLibrary.dll` is in the same folder that `injector.exe`.
