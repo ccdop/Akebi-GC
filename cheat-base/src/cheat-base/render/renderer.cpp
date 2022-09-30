@@ -1,0 +1,311 @@
+#include <pch.h>
+#include "renderer.h"
+
+#include <backends/imgui_impl_dx11.h>
+#pragma comment(lib, "dxgi")
+#include <backends/imgui_impl_dx12.h>
+
+#include <backends/imgui_impl_win32.h>
+
+#include <cheat-base/util.h>
+#include <cheat-base/render/backend/dx11-hook.h>
+#include <cheat-base/render/backend/dx12-hook.h>
+
+#include <cheat-base/ResourceLoader.h>
+#include <cheat-base/cheat/misc/Settings.h>
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+namespace renderer
+{
+	struct Data
+	{
+		LPBYTE data;
+		DWORD size;
+	};
+
+	static std::unordered_set<void*> _inputLockers;
+
+	static float _globalFontSize = 16.0f;
+	static bool _isCustomFontLoaded = false;
+
+	static constexpr int _fontSizeStep = 1;
+	static constexpr int _fontSizeMax = 64;
+	static constexpr int _fontsCount = _fontSizeMax / _fontSizeStep;
+	static std::array<ImFont*, _fontsCount> _fonts;
+
+	static Data _customFontData{};
+
+	static WNDPROC OriginalWndProcHandler;
+	static ID3D11RenderTargetView* mainRenderTargetView;
+
+	static void OnRenderDX11(ID3D11DeviceContext* pContext);
+	static void OnInitializeDX11(HWND window, ID3D11Device* pDevice, ID3D11DeviceContext* pContext, IDXGISwapChain* pChain);
+
+	static void OnPreRenderDX12();
+	static void OnPostRenderDX12(ID3D12GraphicsCommandList* commandList);
+	static void OnInitializeDX12(HWND window, ID3D12Device* pDevice, UINT buffersCounts, ID3D12DescriptorHeap* pDescriptorHeapImGuiRender);
+
+
+
+	void Init(LPBYTE fontData, DWORD fontDataSize, DXVersion version)
+	{
+		_customFontData = { fontData, fontDataSize };
+
+		LOG_DEBUG("Initialize IMGui...");
+
+		switch (version)
+		{
+		case renderer::DXVersion::D3D11:
+			backend::DX11Events::RenderEvent += FUNCTION_HANDLER(OnRenderDX11);
+			backend::DX11Events::InitializeEvent += FUNCTION_HANDLER(OnInitializeDX11);
+			backend::InitializeDX11Hooks();
+			break;
+		case renderer::DXVersion::D3D12:
+			backend::DX12Events::InitializeEvent += FUNCTION_HANDLER(OnInitializeDX12);
+			backend::DX12Events::PreRenderEvent += FUNCTION_HANDLER(OnPreRenderDX12);
+			backend::DX12Events::PostRenderEvent += FUNCTION_HANDLER(OnPostRenderDX12);
+			backend::InitializeDX12Hooks();
+			break;
+		case renderer::DXVersion::D3D9:
+		case renderer::DXVersion::D3D10:
+		default:
+			LOG_ERROR("Used unsupported version of DX.");
+		}
+	}
+
+	void SetInputLock(void* id, bool value)
+	{
+		if (value)
+			AddInputLocker(id);
+		else
+			RemoveInputLocker(id);
+	}
+
+	void AddInputLocker(void* id)
+	{
+		if (_inputLockers.count(id) == 0)
+			_inputLockers.insert(id);
+	}
+
+	void RemoveInputLocker(void* id)
+	{
+		if (_inputLockers.count(id) > 0)
+			_inputLockers.erase(id);
+	}
+
+	bool IsInputLocked()
+	{
+		return _inputLockers.size() > 0;
+	}
+
+	ImFont* GetFontBySize(float fontSize)
+	{
+		if (!_isCustomFontLoaded)
+		{
+			ImGuiIO& io = ImGui::GetIO();
+			return io.FontDefault;
+		}
+		int fontSizeInt = static_cast<int>(fontSize);
+		int fontIndex = fontSizeInt / _fontSizeStep +
+			(fontSizeInt % _fontSizeStep > (_fontSizeStep / 2) ? 1 : 0) - 1;
+		fontIndex = std::clamp(fontIndex, 0, _fontsCount - 1);
+		return _fonts[fontIndex];
+	}
+
+	float GetScaleByFontSize(float fontSize)
+	{
+		if (!_isCustomFontLoaded)
+		{
+			ImGuiIO& io = ImGui::GetIO();
+			return fontSize / io.FontDefault->FontSize;
+		}
+
+		int fontSizeInt = static_cast<int>(fontSize);
+		int fontIndex = fontSizeInt / _fontSizeStep;
+		int fontAligned = fontIndex * _fontSizeStep +
+			((fontSizeInt % _fontSizeStep) > _fontSizeStep / 2 ? _fontSizeStep : 0);
+		fontAligned = std::clamp(fontAligned, _fontSizeStep, _fontSizeMax);
+
+		return fontSize / static_cast<float>(fontAligned);
+	}
+
+	void SetGlobalFontSize(float globalFontSize)
+	{
+		_globalFontSize = globalFontSize;
+	}
+
+	float GetGlobalFontSize()
+	{
+		return _globalFontSize;
+	}
+
+	static void LoadCustomFont()
+	{
+		if (_customFontData.data == nullptr)
+			return;
+
+		for (int i = 0; i < _fontsCount; i++)
+		{
+			ImGuiIO& io = ImGui::GetIO();
+			auto newFont = io.Fonts->AddFontFromMemoryTTF(_customFontData.data, _customFontData.size, static_cast<float>((i + 1) * _fontSizeStep));
+			if (newFont == nullptr)
+				return;
+
+			_fonts[i] = newFont;
+		}
+		_isCustomFontLoaded = true;
+	}
+
+	static void LoadImGuiStyles()
+	{
+		auto& themes = cheat::feature::Settings::GetInstance();
+		themes.Init();
+	}
+
+	static LRESULT CALLBACK hWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+	void OnPreRenderDX12()
+	{
+		ImGui_ImplDX12_NewFrame();
+		ImGui_ImplWin32_NewFrame();
+
+		ImGuiIO& io = ImGui::GetIO(); (void)io;
+		io.FontDefault = GetFontBySize(_globalFontSize);
+		ImGui::NewFrame();
+
+		events::RenderEvent();
+
+		ImGui::EndFrame();
+	}
+
+	void OnPostRenderDX12(ID3D12GraphicsCommandList* commandList)
+	{
+		ImGui::Render();
+		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
+	}
+
+	void OnInitializeDX12(HWND window, ID3D12Device* pDevice, UINT buffersCounts, ID3D12DescriptorHeap* pDescriptorHeapImGuiRender)
+	{
+		LOG_DEBUG("ImGUI: DirectX12 backend initialized successfully.");
+
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO(); (void)io;
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
+		LoadCustomFont();
+		LoadImGuiStyles();
+
+		//Set OriginalWndProcHandler to the Address of the Original WndProc function
+		OriginalWndProcHandler = reinterpret_cast<WNDPROC>(SetWindowLongPtr(window, GWLP_WNDPROC,
+			reinterpret_cast<LONG_PTR>(hWndProc)));
+
+		ImGui_ImplWin32_Init(window);
+		ImGui_ImplDX12_Init(pDevice, buffersCounts, DXGI_FORMAT_R8G8B8A8_UNORM,
+			pDescriptorHeapImGuiRender,
+			pDescriptorHeapImGuiRender->GetCPUDescriptorHandleForHeapStart(),
+			pDescriptorHeapImGuiRender->GetGPUDescriptorHandleForHeapStart());
+
+		ImGui_ImplDX12_CreateDeviceObjects();
+		ImGui::GetIO().ImeWindowHandle = window;
+
+		static const std::string imguiPath = (util::GetCurrentPath() / "imgui.ini").string();
+		ImGui::GetIO().IniFilename = imguiPath.c_str();
+		io.SetPlatformImeDataFn = nullptr; // F**king bug take 4 hours of my life
+	}
+
+	static void OnInitializeDX11(HWND window, ID3D11Device* pDevice, ID3D11DeviceContext* pContext, IDXGISwapChain* pChain)
+	{
+
+		LOG_DEBUG("ImGUI: DirectX11 backend initialized successfully.");
+
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO(); (void)io;
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+		static const std::string imguiPath = (util::GetCurrentPath() / "imgui.ini").string();
+		io.IniFilename = imguiPath.c_str();
+
+		LoadCustomFont();
+		LoadImGuiStyles();
+
+		//Set OriginalWndProcHandler to the Address of the Original WndProc function
+		OriginalWndProcHandler = reinterpret_cast<WNDPROC>(SetWindowLongPtr(window, GWLP_WNDPROC,
+			reinterpret_cast<LONG_PTR>(hWndProc)));
+
+		ImGui_ImplWin32_Init(window);
+		ImGui_ImplDX11_Init(pDevice, pContext);
+
+		ID3D11Texture2D* pBackBuffer;
+		pChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<LPVOID*>(&pBackBuffer));
+		pDevice->CreateRenderTargetView(pBackBuffer, nullptr, &mainRenderTargetView);
+		pBackBuffer->Release();
+
+		io.SetPlatformImeDataFn = nullptr; // F**king bug take 4 hours of my life
+	}
+
+	static void OnRenderDX11(ID3D11DeviceContext* pContext)
+	{
+		ImGui_ImplDX11_NewFrame();
+		ImGui_ImplWin32_NewFrame();
+
+		ImGuiIO& io = ImGui::GetIO(); (void)io;
+		io.FontDefault = GetFontBySize(_globalFontSize);
+		ImGui::NewFrame();
+
+		events::RenderEvent();
+
+		ImGui::EndFrame();
+		ImGui::Render();
+
+		pContext->OMSetRenderTargets(1, &mainRenderTargetView, nullptr);
+		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+	}
+
+	static LRESULT CALLBACK hWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		ImGuiIO& io = ImGui::GetIO();
+		POINT mPos;
+		GetCursorPos(&mPos);
+		ScreenToClient(hWnd, &mPos);
+		ImGui::GetIO().MousePos.x = static_cast<float>(mPos.x);
+		ImGui::GetIO().MousePos.y = static_cast<float>(mPos.y);
+
+		ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam);
+
+		if (!events::WndProcEvent(hWnd, uMsg, wParam, lParam))
+			return true;
+
+		short key;
+		bool keyUpEvent = true;
+		switch (uMsg)
+		{
+		case WM_LBUTTONUP:
+			key = VK_LBUTTON;
+			break;
+		case WM_RBUTTONUP:
+			key = VK_RBUTTON;
+			break;
+		case WM_MBUTTONUP:
+			key = VK_MBUTTON;
+			break;
+		case WM_XBUTTONUP:
+			key = GET_XBUTTON_WPARAM(wParam) == XBUTTON1 ? VK_XBUTTON1 : VK_XBUTTON2;
+			break;
+		case WM_KEYUP:
+			key = static_cast<short>(wParam);
+			break;
+		default:
+			keyUpEvent = false;
+			break;
+		}
+
+		bool canceled = false;
+		if (keyUpEvent)
+			canceled = !events::KeyUpEvent(key);
+
+		if (IsInputLocked() || canceled)
+			return true;
+
+		return CallWindowProc(OriginalWndProcHandler, hWnd, uMsg, wParam, lParam);
+	}
+}
