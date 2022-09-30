@@ -14,24 +14,16 @@
 
 <h1 align="center">Getting Started</h1>
 
+## Building from source
+It is reccomended to use Visual Studio 2022. As well as setting up `cheat-library` as startup project.
+1. Download [Git.](https://git-scm.com/download/win)
+1. Clone repository with `git clone --recurse-submodules https://github.com/tiy331/Akebi-GC.git`
+2. Open `Akebi-GC/Akebi-GC.sln`
+3. Build solution.
+
 ## Stable Release
 1. Head over to the [releases page](https://github.com/tiy331/Akebi-GC/releases)
 2. Download the latest binaries
-
-## Latest Release
-1. Head over to the [Action](https://github.com/tiy331/Akebi-GC/actions) page
-1. Click Publish workflow
-1. Select most recent workflow with green checkmark ✔ (Choose your client version **GLOBAL/CN/BETA**)
-	<p align="center">
-	  <a href="#"><img src="https://user-images.githubusercontent.com/96950043/186429274-1e556c58-8027-4ec9-9c1d-3609c75aede4.png"></a>
-	</p>
-4. Download Akebi-GC-release in Artifacts section
-	<p align="center">
-	  <a href="#"><img src="https://user-images.githubusercontent.com/96950043/186429302-7c7be3f6-df2f-4e49-9bb9-4a703c3491df.png"></a>
-	</p>
-
-## Building from source
-Check our wiki - [Building](https://github.com/tiy331/Akebi-GC/wiki/Building%EF%BD%9C%E5%BB%BA%E7%BD%AE)
 
 ### Usage
 1. Ensure that `CLibrary.dll` is in the same folder that `injector.exe`.
@@ -131,22 +123,21 @@ Check our wiki - [Building](https://github.com/tiy331/Akebi-GC/wiki/Building%EF%
 Welcome to the short explanation for bug reporting
 
 1. You found a bug.
-1. Write down what happened, as well as your first thoughts on what you think caused it.
-1. Can it be reproduced? Yes or no. If yes: Explain in as much clear as possible. i.e what happens when the bug occurs and why it occurs. 
-1. Tell us which version you are using. copy the `SHA`/ Version Number of the latest commit when you built the mod. For example: `bd17a00ec388f3b93624280cde9e1c66e740edf9` / Release 0.7
-1. [Open an Issue(there's a template!)](https://github.com/Akebi-Group/Akebi-GC/issues)
+2. Write down what happened, as well as your first thoughts on what you think caused it.
+3. Can it be reproduced? Yes or no. If yes: Explain in as much clear as possible. i.e what happens when the bug occurs and why it occurs. 
+4. [Open an Issue(there's a template!)](https://github.com/tiy331/Akebi-GC/issues)
 
 <h1 align="center">Contributing</h1>
 
 
 ## Adding a feature
 1. Fork the Project
-1. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-1. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-1. Push to the Branch (`git push origin feature/AmazingFeature`)
-2. [Open a Pull Request](https://github.com/Akebi-Group/Akebi-GC/pulls)
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. [Open a Pull Request](https://github.com/tiy331/Akebi-GC/pulls)
 
 ## Suggestions
 
-Open an [issue](https://github.com/Akebi-Group/Akebi-GC/issues) with the title of the suggestion you want to make.
+Open an [issue](https://github.com/tiy331/Akebi-GC/issues) with the title of the suggestion you want to make.
 In the description, make sure it is **descriptive enough** so our devs can understand what you want and how you want it.  
