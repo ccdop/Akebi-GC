@@ -1,0 +1,3 @@
+[submodule "cheat-base/vendor/simpleIni"]
+	path = cheat-base/vendor/simpleIni
+	url = https://github.com/brofield/simpleini.git
